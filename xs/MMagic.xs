@@ -452,7 +452,7 @@ void fmm_free_state(fmmstate *state)
     Safefree(state);
 }
 
-static int
+static void
 magic_fmm_free_state(pTHX_ SV *self, MAGIC *mg)
 {
     fmmstate *state;
@@ -545,7 +545,7 @@ fmm_mconvert(fmmstate *state, union VALUETYPE *p, fmmagic *m)
 }
 
 static int
-fmm_mget(fmmstate *state, union VALUETYPE *p, unsigned char *s, fmmagic *m, size_t nbytes, char **mime_type)
+fmm_mget(fmmstate *state, union VALUETYPE *p, unsigned char *s, fmmagic *m, size_t nbytes)
 {
     long offset = m->offset;
 
@@ -614,27 +614,6 @@ fmm_slurp_fh(PerlIO *fhandle, char **data, int *size)
     PerlIO_seek(fhandle, pos, SEEK_SET);
 
     return 0;
-}
-
-static int
-fmm_slurp_file(fmmstate *state, char *file, char **data, int *size)
-{
-    PerlIO *fhandle;
-    int   datasize;
-    int   ret;
-    SV *err;
-    
-    fhandle = PerlIO_open(file, "r");
-    if (! fhandle) {
-        err = newSVpvf(
-            "Failed to open %s: %s", file, strerror(errno));
-        FMM_SET_ERROR(state, err);
-        PerlIO_close(fhandle);
-        return -1;
-    }
-    ret = fmm_slurp_fh(fhandle, data, size);
-    PerlIO_close(fhandle);
-    return ret;
 }
 
 #define isODIGIT(c) (((unsigned char)(c) >= '0') && ((unsigned char)(c) <= '7'))
@@ -1395,7 +1374,6 @@ fmm_fsmagic(fmmstate *state, char *filename, char **mime_type)
 {
     struct stat sb;
     SV *err;
-    char *p;
 
     if (stat(filename, &sb) == -1) {
         err = newSVpvf(
@@ -1489,12 +1467,11 @@ fmm_softmagic(fmmstate *state, unsigned char **buf, int size, char **mime_type)
     int need_separator = 0;
     union VALUETYPE p;
     fmmagic *m_cont;
-    int count = 0;
     fmmagic *m = state->magic;
 
     for (; m; m = m->next) {
         /* check if main entry matches */
-        if (! fmm_mget(state, &p, *buf, m, size, mime_type) || !fmm_mcheck(state, &p, m)) {
+        if (! fmm_mget(state, &p, *buf, m, size) || !fmm_mcheck(state, &p, m)) {
             /* main entry didn't match, flush its continuations */
             if (! m->next || (m->next->cont_level == 0)) {
                 continue;
@@ -1534,7 +1511,7 @@ fmm_softmagic(fmmstate *state, unsigned char **buf, int size, char **mime_type)
                     cont_level = m->cont_level;
                 }
 
-                if (fmm_mget(state, &p, *buf, m, size, mime_type) && fmm_mcheck(state, &p, m)) {
+                if (fmm_mget(state, &p, *buf, m, size) && fmm_mcheck(state, &p, m)) {
                     /* This continuation matched. Print its message, with a
                      * blank before it if the previous item printed and this
                      * isn't empty.
@@ -1673,7 +1650,6 @@ new(class, ...)
         SV       *sv;
         SV       *mfile;
         SV       *mfile_name;
-        HV       *hv;
         MAGIC    *mg;
         char     *magic_file;
     CODE:
@@ -1726,7 +1702,6 @@ parse_magic_file(self, file)
         SV *file;
     PREINIT:
         fmmstate *state;
-        SV       *sv;
         char     *filename;
         STRLEN    len;
     CODE:
@@ -1779,7 +1754,6 @@ fsmagic(self, filename)
     PREINIT:
         char *fn;
         char *type;
-        STRLEN len;
         fmmstate *state;
         int rc;
     CODE:
@@ -1805,7 +1779,6 @@ bufmagic(self, buf)
     PREINIT:
         unsigned char *buffer;
         char *type;
-        STRLEN len;
         fmmstate *state;
         int rc;
     CODE:
@@ -1860,7 +1833,6 @@ get_mime(self, filename)
     PREINIT:
         char *fn;
         char *type;
-        char *buf[HOWMANY + 1];
         fmmstate *state;
         int rc;
     CODE:
