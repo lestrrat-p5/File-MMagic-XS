@@ -8,4 +8,7 @@ BEGIN
 
 my $fm = File::MMagic::XS->new;
 ok(!$fm->fsmagic("t/non-existent"));
-ok($fm->error);
+
+my $error = $fm->error;
+like( $error, qr/No such file/ );
+

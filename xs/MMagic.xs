@@ -1900,9 +1900,11 @@ error(self)
         if (! FMM_OK(state))
             croak("Object not initialized.");
 
-        RETVAL = state->error == NULL ?
-            &PL_sv_undef :
-            SvREFCNT_inc(state->error);
+        if (state->error == NULL) {
+            RETVAL = newSV(0);
+        } else {
+            RETVAL = newSVsv(state->error);
+        }
     OUTPUT:
         RETVAL
 
