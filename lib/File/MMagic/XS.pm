@@ -1,23 +1,15 @@
-# $Id: /mirror/perl/File-MMagic-XS/trunk/lib/File/MMagic/XS.pm 8591 2007-11-05T06:08:11.946493Z daisuke  $
-#
-# Copyright (c) 2005-2007 Daisuke Maki <daisuke@endeworks.jp>
-# All rights reserved.
-
 package File::MMagic::XS;
 use strict;
-use vars ('$VERSION', '$MAGIC_FILE');
+use warnings;
+use XSLoader;
+
+our $VERSION;
+our $MAGIC_FILE;
 
 BEGIN
 {
     $VERSION = '0.09003';
-    if ($] > 5.006) {
-        require XSLoader;
-        XSLoader::load(__PACKAGE__, $VERSION);
-    } else {
-        require DynaLoader;
-        @File::MMagic::XS::ISA = ('DynaLoader');
-        __PACKAGE__->bootstrap();
-    }
+    XSLoader::load(__PACKAGE__, $VERSION);
 
     require File::Spec;
     foreach my $path (map { File::Spec->catfile($_, qw(File MMagic magic)) } @INC) {
