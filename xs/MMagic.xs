@@ -1,5 +1,4 @@
-/* $Id$
- *
+/*
  * Daisuke Maki <dmaki@cpan.org>
  * All rights reserved.
  *
