@@ -422,8 +422,8 @@ static struct names {
     (x != NULL)
 
 #define FMM_SET_ERROR(s, e) \
-    if (s->error != NULL) { \
-        Safefree(s->error); \
+    if (e && s->error) { \
+	Safefree(s->error); \
     } \
     s->error = e;
 
@@ -447,7 +447,8 @@ void fmm_free_state(fmmstate *state)
         m  = m->next;
         Safefree(md);
     }
-    free(state->ext);
+    if (state->ext)
+	st_free_table(state->ext);
     Safefree(state);
 }
 
@@ -459,6 +460,10 @@ magic_fmm_free_state(pTHX_ SV *self, MAGIC *mg)
     if (state) {
         fmm_free_state(state);
     }
+    /*
+     * Remove the perl magic from SV, should decrement the refcount
+     */
+    sv_unmagic(self, 0);
 }
 
 MGVTBL
@@ -1607,6 +1612,7 @@ static int
 fmm_ext_magic(fmmstate *state, char *file, char **mime_type)
 {
     char ext[BUFSIZ];
+    char *temp_mimetype;
     /* Look for the last dot */
     char *dot = rindex(file, '.');
     if (dot == 0x00) {
@@ -1614,9 +1620,10 @@ fmm_ext_magic(fmmstate *state, char *file, char **mime_type)
     }
 
     strncpy(ext, dot + 1, BUFSIZ);
-    if (st_lookup(state->ext, (st_data_t) ext, (st_data_t *) mime_type) == 0) {
+    if (st_lookup(state->ext, (st_data_t) ext, (st_data_t *) &temp_mimetype) == 0) {
         return 1;
     }
+    strncpy(*mime_type, temp_mimetype, MAXMIMESTRING);
     return 0;
 }
 
@@ -1678,6 +1685,10 @@ new(class, ...)
         state->error = NULL;
         state->ext   = st_init_strtable();
 
+	/*
+	 * Add a perl magic pointer to the state structure
+	 * to free it automatically after use.
+	 */
         sv = newSViv(PTR2IV(state));
         sv_magic(sv, 0, '~', 0, 0);
         mg = mg_find(sv, '~');
