@@ -1,19 +1,18 @@
-# $Id: /mirror/perl/File-MMagic-XS/trunk/Makefile.PL 8589 2007-11-05T05:59:57.171964Z daisuke  $
-#
-# Daisuke Maki <daisuke@endeworks.jp>
-# All rights reserved.
+use inc::Module::Install;
 
-use strict;
-use 5.006001;
-use ExtUtils::MakeMaker;
+# if you are getting this from git repo, you need to have
+# Module::Install and Module::Install::XSUtil sintalled
 
-my %INFO = (
-    ABSTRACT     => 'Guess File Type With XS (a la mod_mime_magic)',
-    AUTHOR       => 'Daisuke Maki <daisuke@endeworks.jp>',
-    NAME         => 'File::MMagic::XS',
-    VERSION_FROM => 'lib/File/MMagic/XS.pm',
-    OBJECT       => '$(O_FILES)',
-    LICENSE      => "perl",
-);
+name 'File-MMagic-XS';
+all_from 'lib/File/MMagic/XS.pm';
 
-WriteMakefile(%INFO);
+if (!cc_available()) {
+    print STDERR "Cannot continue without a compiler\n";
+    exit 0;
+}
+
+use_ppport;
+cc_warnings;
+cc_src_paths 'xs';
+
+WriteAll;
