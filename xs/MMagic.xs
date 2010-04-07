@@ -584,37 +584,6 @@ fmm_mget(fmmstate *state, union VALUETYPE *p, unsigned char *s, fmmagic *m, size
     return 1;
 }
 
-static int
-fmm_slurp_fh(PerlIO *fhandle, char **data, int *size)
-{
-    int datasize;
-    int rbytes;
-    int sofar = 0;
-    long pos;
-    char buf[BUFSIZ];
-
-    pos = PerlIO_tell(fhandle);
-
-    datasize = BUFSIZ * 10;
-    Newz(1234, *data, datasize, char);
-
-    while ((rbytes = PerlIO_read(fhandle, buf, BUFSIZ)) != 0) {
-        sofar += rbytes;
-        if (datasize < sofar){
-            Renew(*data, datasize * 2, char);
-            datasize *= 2;
-        }
-        strncpy((*data + sofar - rbytes), buf, BUFSIZ);
-    }
-    Renew(*data, datasize + 1, char);
-    (*data)[datasize] = '\0';
-    *size = datasize;
-
-    PerlIO_seek(fhandle, pos, SEEK_SET);
-
-    return 0;
-}
-
 #define isODIGIT(c) (((unsigned char)(c) >= '0') && ((unsigned char)(c) <= '7'))
 
 /*
@@ -1265,6 +1234,7 @@ fmm_parse_magic_file(fmmstate *state, char *file)
     PerlIO *fhandle;
     SV *err;
     SV *sv = sv_2mortal(newSV(BUFSIZ));
+    SV *PL_rs_orig = newSVsv(PL_rs);
     char *line;
 
     fhandle = PerlIO_open(file, "r");
@@ -1276,11 +1246,11 @@ fmm_parse_magic_file(fmmstate *state, char *file)
         return -1;
     }
 
-    /* parse it */
-    /* XXX - HACK HACK HACK HACK!!!! */
-    /* there is no fgets() in Perl, except for sv_gets() ... which is fine
-     * but it's seems a bit inefficient. Come back here when we can later.
+    /*
+     * Parse it line by line
+     * $/ (slurp mode) is needed here
      */
+    PL_rs = sv_2mortal(newSVpvn("\n", 1));
     for(lineno = 1; sv_gets(sv, fhandle, 0) != NULL; lineno++) {
         line = SvPV_nolen(sv);
         /* delete newline */
@@ -1308,6 +1278,7 @@ fmm_parse_magic_file(fmmstate *state, char *file)
         }
     }
     PerlIO_close(fhandle);
+    PL_rs = PL_rs_orig;
 
     return 1;
 }
