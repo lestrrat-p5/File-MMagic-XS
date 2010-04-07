@@ -1608,6 +1608,39 @@ fmm_mime_magic(fmmstate *state, char *file, char **mime_type)
     return fmm_ext_magic(state, file, mime_type);
 }
 
+static SV *
+FMM_create(char *class, char *magic_file) {
+    fmmstate *state;
+    SV       *sv;
+    MAGIC    *mg;
+
+    Newz(1234, state, 1, fmmstate);
+    state->magic = NULL;
+    state->error = NULL;
+    state->ext   = st_init_strtable();
+
+    /*
+     * Add a perl magic pointer to the state structure
+     * to free it automatically after use.
+     */
+    sv = newSViv(PTR2IV(state));
+    sv_magic(sv, 0, '~', 0, 0);
+    mg = mg_find(sv, '~');
+    assert(mg);
+    mg->mg_virtual = &vtbl_fmm_free_state;
+
+    sv = newRV_noinc(sv);
+    sv_bless(sv, gv_stashpv(class, 1));
+    SvREADONLY_on(sv);
+
+    if (magic_file != NULL) {
+        if (!fmm_parse_magic_file(state, magic_file))
+            croak("Could not parse magic file %s", magic_file);
+    }
+    return sv;
+}
+
+
 MODULE = File::MMagic::XS       PACKAGE = File::MMagic::XS
 
 PROTOTYPES: ENABLE
@@ -1616,34 +1649,12 @@ SV *
 new(class, ...)
         SV *class;
     PREINIT:
-        fmmstate *state;
-        SV       *sv;
         SV       *mfile;
         SV       *mfile_name;
-        MAGIC    *mg;
         char     *magic_file;
     CODE:
         if (SvROK(class))
             croak("Cannot call new() on a reference");
-
-        Newz(1234, state, 1, fmmstate);
-        state->magic = NULL;
-        state->error = NULL;
-        state->ext   = st_init_strtable();
-
-	/*
-	 * Add a perl magic pointer to the state structure
-	 * to free it automatically after use.
-	 */
-        sv = newSViv(PTR2IV(state));
-        sv_magic(sv, 0, '~', 0, 0);
-        mg = mg_find(sv, '~');
-        assert(mg);
-        mg->mg_virtual = &vtbl_fmm_free_state;
-
-        sv = newRV_noinc(sv);
-        sv_bless(sv, gv_stashpv(SvPV_nolen(class), 1));
-        SvREADONLY_on(sv);
 
         if (items > 1 && SvOK(ST(1))) {
             magic_file = SvPV_nolen(ST(1));
@@ -1659,10 +1670,36 @@ new(class, ...)
             magic_file = SvPV_nolen(mfile);
         }
 
-        if (!fmm_parse_magic_file(state, magic_file))
-            croak("Could not parse magic file %s", magic_file);
 
-        RETVAL = sv;
+        RETVAL = FMM_create(SvPV_nolen(class), magic_file);
+    OUTPUT:
+        RETVAL
+
+SV *
+clone(self)
+        SV *self;
+    PREINIT:
+        SV *clone;
+        fmmagic *d, *s;
+        fmmstate *state, *orig_state;
+    CODE:
+        clone = FMM_create( "File::MMagic::XS", NULL );
+        state = XS_STATE(fmmstate *, clone);
+        orig_state = XS_STATE(fmmstate *, self);
+        state->ext = st_copy( orig_state->ext );
+
+        s = orig_state->magic;
+        Newxz(d, 1, fmmagic);
+        memcpy(d, s, sizeof(struct _fmmagic));
+        state->magic = d;
+        while (s->next != NULL) {
+            Newxz(d->next, 1, fmmagic);
+            memcpy(d->next, s->next, sizeof(struct _fmmagic));
+            d = d->next;
+            s = s->next;
+        }
+        state->last = d;
+        RETVAL = clone;
     OUTPUT:
         RETVAL
 

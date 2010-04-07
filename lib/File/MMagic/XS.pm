@@ -92,6 +92,10 @@ If you specify the C<file> argument, then File::MMagic::XS will load magic
 definitions from the specified file. If unspecified, it will use the magic
 file that will be installed under File/MMagic/ directory.
 
+=head2 clone()
+
+Clones an existing File::MMagic::XS object.
+
 =head2 parse_magic_file($file)
 
 Read and parse a magic file, as used by Apache2.
