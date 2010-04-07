@@ -3,7 +3,7 @@ Changes
 
 All changes by Daisuke Maki, unless otherwise noted.
 
-next
+0.09003_01 - 07 Apr 2010
    - Fix memory corruption (Martin Blapp)
    - Fix rt #28072. Changing $/ doesn't change the return value (Martin Blapp)
    - Fix how SV returned by error() is handled.
