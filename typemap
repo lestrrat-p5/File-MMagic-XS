@@ -1,0 +1,7 @@
+TYPEMAP
+
+PerlFMM*    T_FMMXS
+
+INPUT
+T_FMMXS
+        $var = XS_STATE(PerlFMM *, $arg);

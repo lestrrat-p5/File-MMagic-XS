@@ -164,12 +164,12 @@ typedef struct _fmmagic {
     char desc[MAXDESC];     /* description */
 } fmmagic;
 
-typedef struct _fmmstate {
+typedef struct _PerlFMM {
     fmmagic *magic;
     fmmagic *last;
     SV    *error;
     st_table *ext;
-} fmmstate;
+} PerlFMM;
 
 /*
  * data structures for tar file recognition
@@ -414,9 +414,6 @@ static struct names {
     }
 };
 
-#define XS_STATE(type, x) \
-    INT2PTR(type, SvROK(x) ? SvIV(SvRV(x)) : SvIV(x))
-
 #define FMM_OK(x) \
     (x != NULL)
 
@@ -436,7 +433,7 @@ static struct names {
 #define NNAMES ((sizeof(names)/sizeof(struct names)) - 1)
 
 static
-void fmm_free_state(fmmstate *state)
+void fmm_free_state(PerlFMM *state)
 {
     fmmagic *m;
     fmmagic *md;
@@ -448,13 +445,17 @@ void fmm_free_state(fmmstate *state)
     }
     if (state->ext)
 	st_free_table(state->ext);
+    if (state->error != NULL) {
+        SvREFCNT_dec(state->error);
+        state->error = NULL;
+    }
     Safefree(state);
 }
 
 /* append string to an existing buffer, using printf fashion */
 /* Will refuse to append anything after MAXMIMESTRING into dst*/
 static void
-fmm_append_buf(fmmstate *state, char **dst, char *str, ...)
+fmm_append_buf(PerlFMM *state, char **dst, char *str, ...)
 {
     va_list ap;
     char buf[MAXMIMESTRING];
@@ -483,7 +484,7 @@ fmm_append_buf(fmmstate *state, char **dst, char *str, ...)
  * Convert the byte order of the data we are looking at
  */
 static int 
-fmm_mconvert(fmmstate *state, union VALUETYPE *p, fmmagic *m)
+fmm_mconvert(PerlFMM *state, union VALUETYPE *p, fmmagic *m)
 {
     char *rt;
     SV *err;
@@ -527,7 +528,7 @@ fmm_mconvert(fmmstate *state, union VALUETYPE *p, fmmagic *m)
 }
 
 static int
-fmm_mget(fmmstate *state, union VALUETYPE *p, unsigned char *s, fmmagic *m, size_t nbytes)
+fmm_mget(PerlFMM *state, union VALUETYPE *p, unsigned char *s, fmmagic *m, size_t nbytes)
 {
     long offset = m->offset;
 
@@ -654,7 +655,7 @@ is_tar(unsigned char *buf, size_t nbytes)
  * extend the sign bit if the comparison is to be signed
  */
 static unsigned long 
-fmm_signextend(fmmstate *state, fmmagic *m, unsigned long v)
+fmm_signextend(PerlFMM *state, fmmagic *m, unsigned long v)
 {
     SV *err;
 
@@ -692,7 +693,7 @@ fmm_signextend(fmmstate *state, fmmagic *m, unsigned long v)
 }
 
 static void
-fmm_append_mime(fmmstate *state, char **buf, union VALUETYPE *p, fmmagic *m)
+fmm_append_mime(PerlFMM *state, char **buf, union VALUETYPE *p, fmmagic *m)
 {
     char *pp;
     unsigned long v;
@@ -740,7 +741,7 @@ fmm_append_mime(fmmstate *state, char **buf, union VALUETYPE *p, fmmagic *m)
 }
 
 static int
-fmm_mcheck(fmmstate *state, union VALUETYPE *p, fmmagic *m)
+fmm_mcheck(PerlFMM *state, union VALUETYPE *p, fmmagic *m)
 {
     register unsigned long l = m->value.l;
     register unsigned long v;
@@ -863,7 +864,7 @@ fmm_hextoint(int c)
  * *slen. Return updated scan pointer as function result.
  */
 static char *
-fmm_getstr(fmmstate *state, register char *s, register char *p, int plen, int *slen)
+fmm_getstr(PerlFMM *state, register char *s, register char *p, int plen, int *slen)
 {
     char *origs = s, *origp = p;
     char *pmax = p + plen - 1;
@@ -978,7 +979,7 @@ fmm_getstr(fmmstate *state, register char *s, register char *p, int plen, int *s
  * pointer, according to the magic type.  Update the string pointer to point
  * just after the number read.  Return 0 for success, non-zero for failure.
  */
-static int fmm_getvalue(fmmstate *state, fmmagic *m, char **p)
+static int fmm_getvalue(PerlFMM *state, fmmagic *m, char **p)
 {
     int slen;
 
@@ -993,7 +994,7 @@ static int fmm_getvalue(fmmstate *state, fmmagic *m, char **p)
 
 /* maps to mod_mime_magic::parse */
 static int
-fmm_parse_magic_line(fmmstate *state, char *l, int lineno)
+fmm_parse_magic_line(PerlFMM *state, char *l, int lineno)
 {
     char    *t;
     char    *s;
@@ -1208,7 +1209,7 @@ GetDesc:
 
 /* maps to mod_mime_magic::apprentice */
 static int
-fmm_parse_magic_file(fmmstate *state, char *file)
+fmm_parse_magic_file(PerlFMM *state, char *file)
 {
     int   ws_offset;
     int   lineno;
@@ -1283,7 +1284,7 @@ fmm_parse_magic_file(fmmstate *state, char *file)
 #define EMPTY_MAGIC_TYPE  "x-system/x-unix;  empty"
 #define BROKEN_SYMLINK_MAGIC_TYPE "x-system/x-unix;  broken symlink"
 static int
-fmm_fsmagic_stat(fmmstate *state, struct stat *sb, char **mime_type)
+fmm_fsmagic_stat(PerlFMM *state, struct stat *sb, char **mime_type)
 {
     SV *err;
 
@@ -1323,7 +1324,7 @@ fmm_fsmagic_stat(fmmstate *state, struct stat *sb, char **mime_type)
 }
 
 static int
-fmm_fsmagic(fmmstate *state, char *filename, char **mime_type)
+fmm_fsmagic(PerlFMM *state, char *filename, char **mime_type)
 {
     struct stat sb;
     SV *err;
@@ -1414,7 +1415,7 @@ fmm_ascmagic(unsigned char *buf, size_t nbytes, char **mime_type)
 }
 
 static int
-fmm_softmagic(fmmstate *state, unsigned char **buf, int size, char **mime_type)
+fmm_softmagic(PerlFMM *state, unsigned char **buf, int size, char **mime_type)
 {
     int cont_level = 0;
     int need_separator = 0;
@@ -1496,7 +1497,7 @@ fmm_softmagic(fmmstate *state, unsigned char **buf, int size, char **mime_type)
 /* Perform mime magic on a PerlIO handle */
 /* Perform mime magic on a buffer */
 static int
-fmm_bufmagic(fmmstate *state, unsigned char **buffer, char **mime_type)
+fmm_bufmagic(PerlFMM *state, unsigned char **buffer, char **mime_type)
 {
     if (fmm_softmagic(state, buffer, HOWMANY, mime_type) == 0) {
 #ifdef FMM_DEBUG
@@ -1515,7 +1516,7 @@ fmm_bufmagic(fmmstate *state, unsigned char **buffer, char **mime_type)
 }
 
 static int
-fmm_fhmagic(fmmstate *state, PerlIO *fhandle, char **mime_type)
+fmm_fhmagic(PerlFMM *state, PerlIO *fhandle, char **mime_type)
 {
     SV *err;
     unsigned char *data;
@@ -1539,7 +1540,7 @@ fmm_fhmagic(fmmstate *state, PerlIO *fhandle, char **mime_type)
 }
 
 static int
-fmm_ext_magic(fmmstate *state, char *file, char **mime_type)
+fmm_ext_magic(PerlFMM *state, char *file, char **mime_type)
 {
     char ext[BUFSIZ];
     char *temp_mimetype;
@@ -1558,7 +1559,7 @@ fmm_ext_magic(fmmstate *state, char *file, char **mime_type)
 }
 
 static int
-fmm_mime_magic(fmmstate *state, char *file, char **mime_type)
+fmm_mime_magic(PerlFMM *state, char *file, char **mime_type)
 {
     PerlIO *fhandle;
     SV *err;
@@ -1593,11 +1594,11 @@ fmm_mime_magic(fmmstate *state, char *file, char **mime_type)
 
 static SV *
 FMM_create(char *class, char *magic_file) {
-    fmmstate *state;
+    PerlFMM *state;
     SV       *sv;
     MAGIC    *mg;
 
-    Newz(1234, state, 1, fmmstate);
+    Newz(1234, state, 1, PerlFMM);
     state->magic = NULL;
     state->error = NULL;
     state->ext   = st_init_strtable();
@@ -1606,14 +1607,8 @@ FMM_create(char *class, char *magic_file) {
      * Add a perl magic pointer to the state structure
      * to free it automatically after use.
      */
-    sv = newSViv(PTR2IV(state));
-    sv_magic(sv, 0, '~', 0, 0);
-    mg = mg_find(sv, '~');
-    assert(mg);
-
-    sv = newRV_noinc(sv);
-    sv_bless(sv, gv_stashpv(class, 1));
-    SvREADONLY_on(sv);
+    sv = newSV(0);
+    sv_setref_pv(sv, class, (void *) state);
 
     if (magic_file != NULL) {
         if (!fmm_parse_magic_file(state, magic_file))
@@ -1622,6 +1617,8 @@ FMM_create(char *class, char *magic_file) {
     return sv;
 }
 
+#define XS_STATE(type, x) \
+    INT2PTR(type, SvROK(x) ? SvIV(SvRV(x)) : SvIV(x))
 
 MODULE = File::MMagic::XS       PACKAGE = File::MMagic::XS
 
@@ -1659,18 +1656,17 @@ new(class, ...)
 
 SV *
 clone(self)
-        SV *self;
+        PerlFMM *self;
     PREINIT:
         SV *clone;
         fmmagic *d, *s;
-        fmmstate *state, *orig_state;
+        PerlFMM *state;
     CODE:
         clone = FMM_create( "File::MMagic::XS", NULL );
-        state = XS_STATE(fmmstate *, clone);
-        orig_state = XS_STATE(fmmstate *, self);
-        state->ext = st_copy( orig_state->ext );
+        state = XS_STATE(PerlFMM *, clone);
+        state->ext = st_copy( self->ext );
 
-        s = orig_state->magic;
+        s = self->magic;
         Newxz(d, 1, fmmagic);
         memcpy(d, s, sizeof(struct _fmmagic));
         state->magic = d;
@@ -1687,37 +1683,33 @@ clone(self)
 
 SV *
 parse_magic_file(self, file)
-        SV *self;
+        PerlFMM *self;
         SV *file;
     PREINIT:
-        fmmstate *state;
         char     *filename;
         STRLEN    len;
     CODE:
-        state = XS_STATE(fmmstate *, self);
-        FMM_SET_ERROR(state, NULL);
+        FMM_SET_ERROR(self, NULL);
 
-        if (! FMM_OK(state))
+        if (! FMM_OK(self))
             croak("Object not initialized.");
 
         filename = SvPV(file, len);
-        RETVAL = fmm_parse_magic_file(state, filename) ?
+        RETVAL = fmm_parse_magic_file(self, filename) ?
             &PL_sv_yes : &PL_sv_undef;
     OUTPUT:
         RETVAL
 
 SV *
 fhmagic(self, svio)
-        SV *self;
+        PerlFMM *self;
         SV *svio;
     PREINIT:
         PerlIO *io;
         char *type;
         int rc;
-        fmmstate *state;
     CODE:
-        state = XS_STATE(fmmstate *, self);
-        if (! FMM_OK(state))
+        if (! FMM_OK(self))
             croak("Object not initialized");
 
         if (! SvROK(svio))
@@ -1727,35 +1719,33 @@ fhmagic(self, svio)
         if (! io)
             croak("Not a handle");
 
-        FMM_SET_ERROR(state, NULL);
+        FMM_SET_ERROR(self, NULL);
 
         Newz(1234, type, BUFSIZ, char);
 
-        rc = fmm_fhmagic(state, io, &type);
+        rc = fmm_fhmagic(self, io, &type);
         RETVAL = FMM_RESULT(type, rc);
     OUTPUT:
         RETVAL
 
 SV *
 fsmagic(self, filename)
-        SV *self;
+        PerlFMM *self;
         SV *filename;
     PREINIT:
         char *fn;
         char *type;
-        fmmstate *state;
         int rc;
     CODE:
-        state = XS_STATE(fmmstate *, self);
-        if (! FMM_OK(state))
+        if (! FMM_OK(self))
             croak("Object not initialized.");
 
         fn = SvPV_nolen(filename);
-        FMM_SET_ERROR(state, NULL);
+        FMM_SET_ERROR(self, NULL);
 
         Newz(1234, type, BUFSIZ, char);
 
-        rc = fmm_fsmagic(state, fn, &type);
+        rc = fmm_fsmagic(self, fn, &type);
         RETVAL = FMM_RESULT(type, rc);
         Safefree(type);
     OUTPUT:
@@ -1763,16 +1753,14 @@ fsmagic(self, filename)
 
 SV *
 bufmagic(self, buf)
-        SV *self;
+        PerlFMM *self;
         SV *buf;
     PREINIT:
         unsigned char *buffer;
         char *type;
-        fmmstate *state;
         int rc;
     CODE:
-        state = XS_STATE(fmmstate *, self);
-        if (! FMM_OK(state))
+        if (! FMM_OK(self))
             croak("Object not initialized.");
 
         /* rt #28040, allow RV to SVs to be passed here */
@@ -1782,11 +1770,11 @@ bufmagic(self, buf)
             buffer = (unsigned char *) SvPV_nolen(buf);
         }
 
-        FMM_SET_ERROR(state, NULL);
+        FMM_SET_ERROR(self, NULL);
 
         Newz(1234, type, BUFSIZ, char);
 
-        rc = fmm_bufmagic(state, &buffer, &type);
+        rc = fmm_bufmagic(self, &buffer, &type);
         RETVAL = FMM_RESULT(type, rc);
         Safefree(type);
     OUTPUT:
@@ -1794,20 +1782,18 @@ bufmagic(self, buf)
 
 SV *
 ascmagic(self, data)
-        SV *self;
+        PerlFMM *self;
         SV *data;
     PREINIT:
         unsigned char *buf;
         char *type;
         STRLEN len;
-        fmmstate *state;
         int rc;
     CODE:
         buf = (unsigned char *) SvPV(data, len);
         Newz(1234, type, BUFSIZ, char);
 
-        state = XS_STATE(fmmstate *, self);
-        FMM_SET_ERROR(state, NULL);
+        FMM_SET_ERROR(self, NULL);
 
         rc = fmm_ascmagic(buf, len, &type);
         RETVAL = FMM_RESULT(type, rc);
@@ -1817,20 +1803,18 @@ ascmagic(self, data)
 
 SV *
 get_mime(self, filename)
-        SV *self;
+        PerlFMM *self;
         SV *filename;
     PREINIT:
         char *fn;
         char *type;
-        fmmstate *state;
         int rc;
     CODE:
-        state = XS_STATE(fmmstate *, self);
         fn = SvPV_nolen(filename);
         Newz(1234, type, MAXMIMESTRING, char);
 
-        FMM_SET_ERROR(state, NULL);
-        rc = fmm_mime_magic(state, fn, &type);
+        FMM_SET_ERROR(self, NULL);
+        rc = fmm_mime_magic(self, fn, &type);
         RETVAL = FMM_RESULT(type, rc);
         Safefree(type);
     OUTPUT:
@@ -1838,18 +1822,16 @@ get_mime(self, filename)
 
 SV *
 add_magic(self, magic)
-        SV *self;
+        PerlFMM *self;
         SV *magic;
     PREINIT:
-        fmmstate *state;
         char *line;
     CODE:
-        state = XS_STATE(fmmstate *, self);
-        if (! FMM_OK(state))
+        if (! FMM_OK(self))
             croak("Object not initialized.");
 
         line = SvPV_nolen(magic);
-        if (fmm_parse_magic_line(state, line, 0) == 0) 
+        if (fmm_parse_magic_line(self, line, 0) == 0) 
             RETVAL = &PL_sv_yes;
         else
             RETVAL = &PL_sv_undef;
@@ -1859,21 +1841,19 @@ add_magic(self, magic)
 
 SV *
 add_file_ext(self, ext, mime)
-        SV *self;
+        PerlFMM *self;
         char *ext;
         char *mime;
     PREINIT:
-        fmmstate *state;
         char     *dummy;
     CODE:
-        state = XS_STATE(fmmstate *, self);
-        if (! FMM_OK(state))
+        if (! FMM_OK(self))
             croak("Object not initialized");
 
-        if (st_lookup(state->ext, (st_data_t) ext, (st_data_t *) &dummy)) {
+        if (st_lookup(self->ext, (st_data_t) ext, (st_data_t *) &dummy)) {
             RETVAL = &PL_sv_no;
         } else {
-            st_insert(state->ext, (st_data_t) ext, (st_data_t) mime);
+            st_insert(self->ext, (st_data_t) ext, (st_data_t) mime);
             RETVAL = &PL_sv_yes;
         }
     OUTPUT:
@@ -1881,18 +1861,15 @@ add_file_ext(self, ext, mime)
 
 SV *
 error(self)
-        SV *self;
-    PREINIT:
-        fmmstate *state;
+        PerlFMM *self;
     CODE:
-        state = XS_STATE(fmmstate *, self);
-        if (! FMM_OK(state))
+        if (! FMM_OK(self))
             croak("Object not initialized.");
 
-        if (state->error == NULL) {
+        if (self->error == NULL) {
             RETVAL = newSV(0);
         } else {
-            RETVAL = newSVsv(state->error);
+            RETVAL = newSVsv(self->error);
         }
     OUTPUT:
         RETVAL
@@ -1900,13 +1877,10 @@ error(self)
 
 void
 DESTROY(self)
-        SV *self;
-    PREINIT:
-        fmmstate *state;
+        PerlFMM *self;
     CODE:
-        state = XS_STATE(fmmstate *, self);
-        if (state) {
-            fmm_free_state(state);
+        if (self) {
+            fmm_free_state(self);
         }
 
 
