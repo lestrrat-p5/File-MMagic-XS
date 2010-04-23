@@ -1664,6 +1664,7 @@ clone(self)
     CODE:
         clone = FMM_create( "File::MMagic::XS", NULL );
         state = XS_STATE(PerlFMM *, clone);
+        st_free_table(state->ext);
         state->ext = st_copy( self->ext );
 
         s = self->magic;
@@ -1677,6 +1678,7 @@ clone(self)
             s = s->next;
         }
         state->last = d;
+        state->last->next = NULL;
         RETVAL = clone;
     OUTPUT:
         RETVAL
