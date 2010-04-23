@@ -451,23 +451,6 @@ void fmm_free_state(fmmstate *state)
     Safefree(state);
 }
 
-static void
-magic_fmm_free_state(pTHX_ SV *self, MAGIC *mg)
-{
-    fmmstate *state;
-    state = XS_STATE(fmmstate *, self);
-    if (state) {
-        fmm_free_state(state);
-    }
-    /*
-     * Remove the perl magic from SV, should decrement the refcount
-     */
-    sv_unmagic(self, 0);
-}
-
-MGVTBL
-vtbl_fmm_free_state = { 0, 0 , 0, 0, MEMBER_TO_FPTR(magic_fmm_free_state) };
-
 /* append string to an existing buffer, using printf fashion */
 /* Will refuse to append anything after MAXMIMESTRING into dst*/
 static void
@@ -1627,7 +1610,6 @@ FMM_create(char *class, char *magic_file) {
     sv_magic(sv, 0, '~', 0, 0);
     mg = mg_find(sv, '~');
     assert(mg);
-    mg->mg_virtual = &vtbl_fmm_free_state;
 
     sv = newRV_noinc(sv);
     sv_bless(sv, gv_stashpv(class, 1));
@@ -1915,5 +1897,16 @@ error(self)
     OUTPUT:
         RETVAL
 
+
+void
+DESTROY(self)
+        SV *self;
+    PREINIT:
+        fmmstate *state;
+    CODE:
+        state = XS_STATE(fmmstate *, self);
+        if (state) {
+            fmm_free_state(state);
+        }
 
 
