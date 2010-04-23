@@ -684,7 +684,7 @@ fmm_signextend(fmmstate *state, fmmagic *m, unsigned long v)
         break;
     default:
         err = newSVpvf(
-            "fmm_signextend: can;t happen: m->type=%s\n", m->type);
+            "fmm_signextend: can't happen: m->type=%d\n", m->type);
         FMM_SET_ERROR(state, err);
         return -1;
     }
