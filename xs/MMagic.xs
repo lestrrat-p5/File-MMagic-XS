@@ -1520,7 +1520,7 @@ fmm_fhmagic(PerlFMM *state, PerlIO *fhandle, char **mime_type)
 {
     SV *err;
     unsigned char *data;
-    int ret;
+    int ret = -1;
 
     Newz(1234, data, HOWMANY + 1, unsigned char);
     if (! PerlIO_read(fhandle, data, HOWMANY)) {
@@ -1529,13 +1529,13 @@ fmm_fhmagic(PerlFMM *state, PerlIO *fhandle, char **mime_type)
             strerror(errno)
         );
         FMM_SET_ERROR(state, err);
-
         Safefree(data);
         return -1;
     }
 
     ret = fmm_bufmagic(state, &data, mime_type);
     Safefree(data);
+
     return ret;
 }
 
@@ -1720,11 +1720,10 @@ fhmagic(self, svio)
             croak("Not a handle");
 
         FMM_SET_ERROR(self, NULL);
-
         Newz(1234, type, BUFSIZ, char);
-
         rc = fmm_fhmagic(self, io, &type);
         RETVAL = FMM_RESULT(type, rc);
+        Safefree(type);
     OUTPUT:
         RETVAL
 
