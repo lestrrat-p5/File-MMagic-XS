@@ -1701,6 +1701,81 @@ FMM_fhmagic(PerlFMM *self, SV *svio)
     return ret;
 }
 
+SV *
+FMM_fsmagic(PerlFMM *self, char *filename)
+{
+    char *type;
+    int rc;
+    SV *ret;
+
+    FMM_SET_ERROR(self, NULL);
+
+    Newz(1234, type, BUFSIZ, char);
+
+    rc = fmm_fsmagic(self, filename, &type);
+    ret = FMM_RESULT(type, rc);
+    Safefree(type);
+    return ret;
+}
+
+SV *
+FMM_bufmagic(PerlFMM *self, SV *buf)
+{
+    unsigned char *buffer;
+    char *type;
+    int rc;
+    SV *ret;
+
+    /* rt #28040, allow RV to SVs to be passed here */
+    if (SvROK(buf) && SvTYPE(SvRV(buf)) == SVt_PV) {
+        buffer = (unsigned char *) SvPV_nolen( SvRV( buf ) );
+    } else {
+        buffer = (unsigned char *) SvPV_nolen(buf);
+    }
+
+    FMM_SET_ERROR(self, NULL);
+
+    Newz(1234, type, BUFSIZ, char);
+
+    rc = fmm_bufmagic(self, &buffer, &type);
+    ret = FMM_RESULT(type, rc);
+    Safefree(type);
+    return ret;
+}
+
+SV *
+FMM_ascmagic(PerlFMM *self, char *data)
+{
+    char *type;
+    int rc;
+    SV *ret;
+
+    Newz(1234, type, BUFSIZ, char);
+
+    FMM_SET_ERROR(self, NULL);
+
+    rc = fmm_ascmagic(data, strlen(data), &type);
+    ret = FMM_RESULT(type, rc);
+    Safefree(type);
+    return ret;
+}
+
+SV *
+FMM_get_mime(PerlFMM *self, char *filename)
+{
+    char *type;
+    int rc;
+    SV *ret;
+
+    Newz(1234, type, MAXMIMESTRING, char);
+
+    FMM_SET_ERROR(self, NULL);
+    rc = fmm_mime_magic(self, filename, &type);
+    ret = FMM_RESULT(type, rc);
+    Safefree(type);
+    return ret;
+}
+
 MODULE = File::MMagic::XS       PACKAGE = File::MMagic::XS   PREFIX = FMM_
 
 
@@ -1751,96 +1826,24 @@ FMM_fhmagic(self, svio)
         SV *svio;
 
 SV *
-fsmagic(self, filename)
+FMM_fsmagic(self, filename)
         PerlFMM *self;
-        SV *filename;
-    PREINIT:
-        char *fn;
-        char *type;
-        int rc;
-    CODE:
-        if (! FMM_OK(self))
-            croak("Object not initialized.");
-
-        fn = SvPV_nolen(filename);
-        FMM_SET_ERROR(self, NULL);
-
-        Newz(1234, type, BUFSIZ, char);
-
-        rc = fmm_fsmagic(self, fn, &type);
-        RETVAL = FMM_RESULT(type, rc);
-        Safefree(type);
-    OUTPUT:
-        RETVAL
+        char *filename;
 
 SV *
-bufmagic(self, buf)
+FMM_bufmagic(self, buf)
         PerlFMM *self;
         SV *buf;
-    PREINIT:
-        unsigned char *buffer;
-        char *type;
-        int rc;
-    CODE:
-        if (! FMM_OK(self))
-            croak("Object not initialized.");
-
-        /* rt #28040, allow RV to SVs to be passed here */
-        if (SvROK(buf) && SvTYPE(SvRV(buf)) == SVt_PV) {
-            buffer = (unsigned char *) SvPV_nolen( SvRV( buf ) );
-        } else {
-            buffer = (unsigned char *) SvPV_nolen(buf);
-        }
-
-        FMM_SET_ERROR(self, NULL);
-
-        Newz(1234, type, BUFSIZ, char);
-
-        rc = fmm_bufmagic(self, &buffer, &type);
-        RETVAL = FMM_RESULT(type, rc);
-        Safefree(type);
-    OUTPUT:
-        RETVAL
 
 SV *
-ascmagic(self, data)
+FMM_ascmagic(self, data)
         PerlFMM *self;
-        SV *data;
-    PREINIT:
-        unsigned char *buf;
-        char *type;
-        STRLEN len;
-        int rc;
-    CODE:
-        buf = (unsigned char *) SvPV(data, len);
-        Newz(1234, type, BUFSIZ, char);
-
-        FMM_SET_ERROR(self, NULL);
-
-        rc = fmm_ascmagic(buf, len, &type);
-        RETVAL = FMM_RESULT(type, rc);
-        Safefree(type);
-    OUTPUT:
-        RETVAL
+        char *data;
 
 SV *
-get_mime(self, filename)
+FMM_get_mime(self, filename)
         PerlFMM *self;
-        SV *filename;
-    PREINIT:
-        char *fn;
-        char *type;
-        int rc;
-    CODE:
-        fn = SvPV_nolen(filename);
-        Newz(1234, type, MAXMIMESTRING, char);
-
-        FMM_SET_ERROR(self, NULL);
-        rc = fmm_mime_magic(self, fn, &type);
-        RETVAL = FMM_RESULT(type, rc);
-        Safefree(type);
-    OUTPUT:
-        RETVAL
+        char *filename;
 
 SV *
 FMM_add_magic(self, magic)
