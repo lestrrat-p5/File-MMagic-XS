@@ -1615,7 +1615,7 @@ FMM_create(char *class) {
     return sv;
 }
 
-SV *
+static SV *
 FMM_clone(PerlFMM *self)
 {
     SV *clone;
@@ -1643,7 +1643,7 @@ FMM_clone(PerlFMM *self)
     return clone;
 }
 
-SV *
+static SV *
 FMM_parse_magic_file(PerlFMM *self, char *file)
 {
     FMM_SET_ERROR(self, NULL);
@@ -1651,7 +1651,7 @@ FMM_parse_magic_file(PerlFMM *self, char *file)
         &PL_sv_yes : &PL_sv_undef;
 }
 
-SV *
+static SV *
 FMM_add_magic(PerlFMM *self, char *magic)
 {
     return fmm_parse_magic_line(self, magic, 0) == 0 ?
@@ -1659,7 +1659,7 @@ FMM_add_magic(PerlFMM *self, char *magic)
     ;
 }
 
-SV *
+static SV *
 FMM_add_file_ext(PerlFMM *self, char *ext, char *mime)
 {
     char *dummy;
@@ -1674,7 +1674,7 @@ FMM_add_file_ext(PerlFMM *self, char *ext, char *mime)
     return ret;
 }
 
-SV *
+static SV *
 FMM_fhmagic(PerlFMM *self, SV *svio)
 {
     PerlIO *io;
@@ -1697,7 +1697,7 @@ FMM_fhmagic(PerlFMM *self, SV *svio)
     return ret;
 }
 
-SV *
+static SV *
 FMM_fsmagic(PerlFMM *self, char *filename)
 {
     char *type;
@@ -1714,7 +1714,7 @@ FMM_fsmagic(PerlFMM *self, char *filename)
     return ret;
 }
 
-SV *
+static SV *
 FMM_bufmagic(PerlFMM *self, SV *buf)
 {
     unsigned char *buffer;
@@ -1739,7 +1739,7 @@ FMM_bufmagic(PerlFMM *self, SV *buf)
     return ret;
 }
 
-SV *
+static SV *
 FMM_ascmagic(PerlFMM *self, char *data)
 {
     char *type;
@@ -1756,7 +1756,7 @@ FMM_ascmagic(PerlFMM *self, char *data)
     return ret;
 }
 
-SV *
+static SV *
 FMM_get_mime(PerlFMM *self, char *filename)
 {
     char *type;
