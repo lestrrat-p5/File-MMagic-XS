@@ -1647,6 +1647,14 @@ FMM_clone(PerlFMM *self)
     return clone;
 }
 
+SV *
+FMM_parse_magic_file(PerlFMM *self, char *file)
+{
+    FMM_SET_ERROR(self, NULL);
+    return fmm_parse_magic_file(self, file) ?
+        &PL_sv_yes : &PL_sv_undef;
+}
+
 MODULE = File::MMagic::XS       PACKAGE = File::MMagic::XS   PREFIX = FMM_
 
 
@@ -1687,23 +1695,9 @@ FMM_clone(self)
         PerlFMM *self;
 
 SV *
-parse_magic_file(self, file)
+FMM_parse_magic_file(self, file)
         PerlFMM *self;
-        SV *file;
-    PREINIT:
-        char     *filename;
-        STRLEN    len;
-    CODE:
-        FMM_SET_ERROR(self, NULL);
-
-        if (! FMM_OK(self))
-            croak("Object not initialized.");
-
-        filename = SvPV(file, len);
-        RETVAL = fmm_parse_magic_file(self, filename) ?
-            &PL_sv_yes : &PL_sv_undef;
-    OUTPUT:
-        RETVAL
+        char *file;
 
 SV *
 fhmagic(self, svio)
