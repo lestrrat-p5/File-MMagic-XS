@@ -1655,6 +1655,14 @@ FMM_parse_magic_file(PerlFMM *self, char *file)
         &PL_sv_yes : &PL_sv_undef;
 }
 
+SV *
+FMM_add_magic(PerlFMM *self, char *magic)
+{
+    return fmm_parse_magic_line(self, magic, 0) == 0 ?
+        &PL_sv_yes : &PL_sv_undef
+    ;
+}
+
 MODULE = File::MMagic::XS       PACKAGE = File::MMagic::XS   PREFIX = FMM_
 
 
@@ -1819,23 +1827,9 @@ get_mime(self, filename)
         RETVAL
 
 SV *
-add_magic(self, magic)
+FMM_add_magic(self, magic)
         PerlFMM *self;
-        SV *magic;
-    PREINIT:
-        char *line;
-    CODE:
-        if (! FMM_OK(self))
-            croak("Object not initialized.");
-
-        line = SvPV_nolen(magic);
-        if (fmm_parse_magic_line(self, line, 0) == 0) 
-            RETVAL = &PL_sv_yes;
-        else
-            RETVAL = &PL_sv_undef;
-
-    OUTPUT:
-        RETVAL
+        char *magic;
 
 SV *
 add_file_ext(self, ext, mime)
