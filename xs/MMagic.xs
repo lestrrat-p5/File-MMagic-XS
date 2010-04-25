@@ -1663,6 +1663,21 @@ FMM_add_magic(PerlFMM *self, char *magic)
     ;
 }
 
+SV *
+FMM_add_file_ext(PerlFMM *self, char *ext, char *mime)
+{
+    char *dummy;
+    SV *ret;
+
+    if (st_lookup(self->ext, (st_data_t) ext, (st_data_t *) &dummy)) {
+        ret = &PL_sv_no;
+    } else {
+        st_insert(self->ext, (st_data_t) ext, (st_data_t) mime);
+        ret = &PL_sv_yes;
+    }
+    return ret;
+}
+
 MODULE = File::MMagic::XS       PACKAGE = File::MMagic::XS   PREFIX = FMM_
 
 
@@ -1832,24 +1847,10 @@ FMM_add_magic(self, magic)
         char *magic;
 
 SV *
-add_file_ext(self, ext, mime)
+FMM_add_file_ext(self, ext, mime)
         PerlFMM *self;
         char *ext;
         char *mime;
-    PREINIT:
-        char     *dummy;
-    CODE:
-        if (! FMM_OK(self))
-            croak("Object not initialized");
-
-        if (st_lookup(self->ext, (st_data_t) ext, (st_data_t *) &dummy)) {
-            RETVAL = &PL_sv_no;
-        } else {
-            st_insert(self->ext, (st_data_t) ext, (st_data_t) mime);
-            RETVAL = &PL_sv_yes;
-        }
-    OUTPUT:
-        RETVAL
 
 SV *
 error(self)
