@@ -112,6 +112,9 @@
 #include <string.h>
 #include "MMagicST.h"
 
+#define XS_STATE(type, x) \
+    INT2PTR(type, SvROK(x) ? SvIV(SvRV(x)) : SvIV(x))
+
 #define EATAB(x) \
     {while (isSPACE(*x)) ++x;}
 #define MAXDESC   50       /* max leng of text description */
@@ -1596,7 +1599,6 @@ static SV *
 FMM_create(char *class, char *magic_file) {
     PerlFMM *state;
     SV       *sv;
-    MAGIC    *mg;
 
     Newz(1234, state, 1, PerlFMM);
     state->magic = NULL;
@@ -1617,10 +1619,36 @@ FMM_create(char *class, char *magic_file) {
     return sv;
 }
 
-#define XS_STATE(type, x) \
-    INT2PTR(type, SvROK(x) ? SvIV(SvRV(x)) : SvIV(x))
+SV *
+FMM_clone(PerlFMM *self)
+{
+    SV *clone;
+    fmmagic *d, *s;
+    PerlFMM *state;
 
-MODULE = File::MMagic::XS       PACKAGE = File::MMagic::XS
+    clone = FMM_create( "File::MMagic::XS", NULL );
+    state = XS_STATE(PerlFMM *, clone);
+    st_free_table(state->ext);
+    state->ext = st_copy( self->ext );
+
+    s = self->magic;
+    Newxz(d, 1, fmmagic);
+    memcpy(d, s, sizeof(struct _fmmagic));
+    state->magic = d;
+    while (s->next != NULL) {
+        Newxz(d->next, 1, fmmagic);
+        memcpy(d->next, s->next, sizeof(struct _fmmagic));
+        d = d->next;
+        s = s->next;
+    }
+    state->last = d;
+    state->last->next = NULL;
+
+    return clone;
+}
+
+MODULE = File::MMagic::XS       PACKAGE = File::MMagic::XS   PREFIX = FMM_
+
 
 PROTOTYPES: ENABLE
 
@@ -1655,33 +1683,8 @@ new(class, ...)
         RETVAL
 
 SV *
-clone(self)
+FMM_clone(self)
         PerlFMM *self;
-    PREINIT:
-        SV *clone;
-        fmmagic *d, *s;
-        PerlFMM *state;
-    CODE:
-        clone = FMM_create( "File::MMagic::XS", NULL );
-        state = XS_STATE(PerlFMM *, clone);
-        st_free_table(state->ext);
-        state->ext = st_copy( self->ext );
-
-        s = self->magic;
-        Newxz(d, 1, fmmagic);
-        memcpy(d, s, sizeof(struct _fmmagic));
-        state->magic = d;
-        while (s->next != NULL) {
-            Newxz(d->next, 1, fmmagic);
-            memcpy(d->next, s->next, sizeof(struct _fmmagic));
-            d = d->next;
-            s = s->next;
-        }
-        state->last = d;
-        state->last->next = NULL;
-        RETVAL = clone;
-    OUTPUT:
-        RETVAL
 
 SV *
 parse_magic_file(self, file)
