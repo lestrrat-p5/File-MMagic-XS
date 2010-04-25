@@ -1678,6 +1678,29 @@ FMM_add_file_ext(PerlFMM *self, char *ext, char *mime)
     return ret;
 }
 
+SV *
+FMM_fhmagic(PerlFMM *self, SV *svio)
+{
+    PerlIO *io;
+    char *type;
+    int rc;
+    SV *ret;
+
+    if (! SvROK(svio))
+        croak("Usage: self->fhmagic(*handle))");
+
+    io = IoIFP(sv_2io(SvRV(svio)));
+    if (! io)
+        croak("Not a handle");
+
+    FMM_SET_ERROR(self, NULL);
+    Newz(1234, type, BUFSIZ, char);
+    rc = fmm_fhmagic(self, io, &type);
+    ret = FMM_RESULT(type, rc);
+    Safefree(type);
+    return ret;
+}
+
 MODULE = File::MMagic::XS       PACKAGE = File::MMagic::XS   PREFIX = FMM_
 
 
@@ -1723,31 +1746,9 @@ FMM_parse_magic_file(self, file)
         char *file;
 
 SV *
-fhmagic(self, svio)
+FMM_fhmagic(self, svio)
         PerlFMM *self;
         SV *svio;
-    PREINIT:
-        PerlIO *io;
-        char *type;
-        int rc;
-    CODE:
-        if (! FMM_OK(self))
-            croak("Object not initialized");
-
-        if (! SvROK(svio))
-            croak("Usage: self->fhmagic(*handle))");
-
-        io = IoIFP(sv_2io(SvRV(svio)));
-        if (! io)
-            croak("Not a handle");
-
-        FMM_SET_ERROR(self, NULL);
-        Newz(1234, type, BUFSIZ, char);
-        rc = fmm_fhmagic(self, io, &type);
-        RETVAL = FMM_RESULT(type, rc);
-        Safefree(type);
-    OUTPUT:
-        RETVAL
 
 SV *
 fsmagic(self, filename)
