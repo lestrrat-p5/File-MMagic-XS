@@ -38,6 +38,15 @@ sub import
     $class->SUPER::import(@_);
 }
 
+sub new {
+    my ($class, $magic_file) = @_;
+    $magic_file ||= $MAGIC_FILE;
+
+    my $self = $class->create();
+    $self->parse_magic_file( $magic_file );
+    return $self;
+}
+
 1;
 
 __END__

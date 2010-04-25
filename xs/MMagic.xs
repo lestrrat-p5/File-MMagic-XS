@@ -1596,7 +1596,7 @@ fmm_mime_magic(PerlFMM *state, char *file, char **mime_type)
 }
 
 static SV *
-FMM_create(char *class, char *magic_file) {
+FMM_create(char *class) {
     PerlFMM *state;
     SV       *sv;
 
@@ -1612,10 +1612,6 @@ FMM_create(char *class, char *magic_file) {
     sv = newSV(0);
     sv_setref_pv(sv, class, (void *) state);
 
-    if (magic_file != NULL) {
-        if (!fmm_parse_magic_file(state, magic_file))
-            croak("Could not parse magic file %s", magic_file);
-    }
     return sv;
 }
 
@@ -1626,7 +1622,7 @@ FMM_clone(PerlFMM *self)
     fmmagic *d, *s;
     PerlFMM *state;
 
-    clone = FMM_create( "File::MMagic::XS", NULL );
+    clone = FMM_create( "File::MMagic::XS" );
     state = XS_STATE(PerlFMM *, clone);
     st_free_table(state->ext);
     state->ext = st_copy( self->ext );
@@ -1782,34 +1778,8 @@ MODULE = File::MMagic::XS       PACKAGE = File::MMagic::XS   PREFIX = FMM_
 PROTOTYPES: ENABLE
 
 SV *
-new(class, ...)
-        SV *class;
-    PREINIT:
-        SV       *mfile;
-        SV       *mfile_name;
-        char     *magic_file;
-    CODE:
-        if (SvROK(class))
-            croak("Cannot call new() on a reference");
-
-        if (items > 1 && SvOK(ST(1))) {
-            magic_file = SvPV_nolen(ST(1));
-        } else {
-            mfile_name = newSVsv(class);
-            sv_catpv(mfile_name, "::MAGIC_FILE");
-            sv_2mortal(mfile_name);
-
-            mfile = get_sv(SvPV_nolen(mfile_name), 0);
-            if (mfile == NULL)
-                croak("Path to magic file not given to new() and %s not defined. Giving up..", SvPV_nolen(mfile_name));
-
-            magic_file = SvPV_nolen(mfile);
-        }
-
-
-        RETVAL = FMM_create(SvPV_nolen(class), magic_file);
-    OUTPUT:
-        RETVAL
+FMM_create(class)
+        char *class;
 
 SV *
 FMM_clone(self)
