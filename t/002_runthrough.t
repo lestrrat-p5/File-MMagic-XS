@@ -10,7 +10,7 @@ BEGIN
         't/data/test.xml' => 'text/xml',
         't/data/test.rtf' => 'application/rtf'
     );
-    plan(tests => (scalar( keys %map ) * 5 + 1) * 2 + 1);
+    plan(tests => (scalar( keys %map ) * 5 + 2) * 2 + 1);
 }
 
 BEGIN
@@ -43,6 +43,10 @@ foreach my $eol (undef, "\0") {
     }
 
     $fm->add_magic( "0\tstring\t#\\ perl-test\tapplication/x-perl-test" );
+    is( $fm->get_mime( __FILE__ ), 'application/x-perl-test' );
+
+    # check file_ext (rt #35269)
+    $fm->add_file_ext('t', 'application/x-perl-test');
     is( $fm->get_mime( __FILE__ ), 'application/x-perl-test' );
 }
 
