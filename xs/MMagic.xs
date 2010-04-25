@@ -435,8 +435,8 @@ static struct names {
 
 #define NNAMES ((sizeof(names)/sizeof(struct names)) - 1)
 
-static
-void fmm_free_state(PerlFMM *state)
+static void 
+FMM_destroy(PerlFMM *state)
 {
     fmmagic *m;
     fmmagic *md;
@@ -1880,11 +1880,9 @@ error(self)
 
 
 void
-DESTROY(self)
+FMM_destroy(self)
         PerlFMM *self;
-    CODE:
-        if (self) {
-            fmm_free_state(self);
-        }
+    ALIAS:
+        DESTROY = 1
 
 
