@@ -1,4 +1,4 @@
-#!perl
+# perl-test
 use strict;
 use Test::More;
 my %map;
@@ -10,7 +10,7 @@ BEGIN
         't/data/test.xml' => 'text/xml',
         't/data/test.rtf' => 'application/rtf'
     );
-    plan(tests => (scalar( keys %map ) * 4) * 2 + 1);
+    plan(tests => (scalar( keys %map ) * 4 + 1) * 2 + 1);
 }
 
 BEGIN
@@ -19,10 +19,10 @@ BEGIN
 }
 
 
-my $fm = File::MMagic::XS->new;
-
 foreach my $eol (undef, "\0") {
     local $/ = $eol;
+    my $fm = File::MMagic::XS->new;
+
     while (my($file, $mime) = each %map) {
         my $got = $fm->get_mime($file);
         is($got, $mime, "$file: expected $mime");
@@ -35,5 +35,8 @@ foreach my $eol (undef, "\0") {
         my $ref = \$buf;
         is($fm->bufmagic($ref), $mime, "$file: expected $mime from bufmagic");
     }
+
+    $fm->add_magic( "0\tstring\t#\\ perl-test\tapplication/x-perl-test" );
+    is( $fm->get_mime( __FILE__ ), 'application/x-perl-test' );
 }
 
