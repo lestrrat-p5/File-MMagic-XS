@@ -3,6 +3,20 @@ Changes
 
 All changes by Daisuke Maki, unless otherwise noted.
 
+0.09003_02 - 26 Apr 2010
+   - Ah, typemaps! I guess I didn't know about it when I first wrote this
+   - Add many tests
+   - Fix a memory leak under clone()
+   - Fix a memory leak under fhmagic()
+   - Update function declarations to a more modern style
+     * move all functions out of XS section, and make use of
+       automatic linkage by xsubpp
+   - Add a memory leak test
+     * only runnable when running under author mode
+     * set TEST_MEMLEAK=1 
+     * ignore any leaks that does not directly show a Perl_*
+       namespace.
+
 0.09003_01 - 07 Apr 2010
    - Fix memory corruption (Martin Blapp)
    - Fix rt #28072. Changing $/ doesn't change the return value (Martin Blapp)
