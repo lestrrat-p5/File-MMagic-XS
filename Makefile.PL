@@ -10,6 +10,14 @@ use inc::Module::Install;
 name 'File-MMagic-XS';
 all_from 'lib/File/MMagic/XS.pm';
 
+if ($^O eq 'MSWin32') {
+    print STDERR 
+        "File::MMagic::XS does not compile on Windows\n",
+        "(patches welcome)\n"
+    ;
+    exit 0;
+}
+
 use_ppport;
 cc_warnings;
 cc_src_paths 'xs';
