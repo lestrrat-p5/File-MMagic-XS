@@ -349,26 +349,6 @@ static struct names {
 
 #define NNAMES ((sizeof(names)/sizeof(struct names)) - 1)
 
-void 
-FMM_destroy(PerlFMM *state)
-{
-    fmmagic *m;
-    fmmagic *md;
-
-    for (m = state->magic; m; ) {
-        md = m;
-        m  = m->next;
-        Safefree(md);
-    }
-    if (state->ext)
-	st_free_table(state->ext);
-    if (state->error != NULL) {
-        SvREFCNT_dec(state->error);
-        state->error = NULL;
-    }
-    Safefree(state);
-}
-
 /* append string to an existing buffer, using printf fashion */
 /* Will refuse to append anything after MAXMIMESTRING into dst*/
 static void
@@ -1509,35 +1489,26 @@ fmm_mime_magic(PerlFMM *state, char *file, char **mime_type)
     return fmm_ext_magic(state, file, mime_type);
 }
 
-SV *
-FMM_create(char *class) {
+PerlFMM*
+PerlFMM_create(SV *class_sv) {
     PerlFMM *state;
-    SV       *sv;
 
+    PERL_UNUSED_VAR(class_sv);
     Newz(1234, state, 1, PerlFMM);
     state->magic = NULL;
     state->error = NULL;
     state->ext   = st_init_strtable();
 
-    /*
-     * Add a perl magic pointer to the state structure
-     * to free it automatically after use.
-     */
-    sv = newSV(0);
-    sv_setref_pv(sv, class, (void *) state);
-
-    return sv;
+    return state;
 }
 
-SV *
-FMM_clone(PerlFMM *self)
+PerlFMM *
+PerlFMM_clone(PerlFMM *self)
 {
-    SV *clone;
-    fmmagic *d, *s;
     PerlFMM *state;
+    fmmagic *d, *s;
 
-    clone = FMM_create( "File::MMagic::XS" );
-    state = XS_STATE(PerlFMM *, clone);
+    state = PerlFMM_create(NULL);
     st_free_table(state->ext);
     state->ext = st_copy( self->ext );
 
@@ -1554,11 +1525,11 @@ FMM_clone(PerlFMM *self)
     state->last = d;
     state->last->next = NULL;
 
-    return clone;
+    return state;
 }
 
 SV *
-FMM_parse_magic_file(PerlFMM *self, char *file)
+PerlFMM_parse_magic_file(PerlFMM *self, char *file)
 {
     FMM_SET_ERROR(self, NULL);
     return fmm_parse_magic_file(self, file) ?
@@ -1566,7 +1537,7 @@ FMM_parse_magic_file(PerlFMM *self, char *file)
 }
 
 SV *
-FMM_add_magic(PerlFMM *self, char *magic)
+PerlFMM_add_magic(PerlFMM *self, char *magic)
 {
     return fmm_parse_magic_line(self, magic, 0) == 0 ?
         &PL_sv_yes : &PL_sv_undef
@@ -1574,7 +1545,7 @@ FMM_add_magic(PerlFMM *self, char *magic)
 }
 
 SV *
-FMM_add_file_ext(PerlFMM *self, char *ext, char *mime)
+PerlFMM_add_file_ext(PerlFMM *self, char *ext, char *mime)
 {
     char *dummy;
     SV *ret;
@@ -1589,7 +1560,7 @@ FMM_add_file_ext(PerlFMM *self, char *ext, char *mime)
 }
 
 SV *
-FMM_fhmagic(PerlFMM *self, SV *svio)
+PerlFMM_fhmagic(PerlFMM *self, SV *svio)
 {
     PerlIO *io;
     char *type;
@@ -1612,7 +1583,7 @@ FMM_fhmagic(PerlFMM *self, SV *svio)
 }
 
 SV *
-FMM_fsmagic(PerlFMM *self, char *filename)
+PerlFMM_fsmagic(PerlFMM *self, char *filename)
 {
     char *type;
     int rc;
@@ -1629,7 +1600,7 @@ FMM_fsmagic(PerlFMM *self, char *filename)
 }
 
 SV *
-FMM_bufmagic(PerlFMM *self, SV *buf)
+PerlFMM_bufmagic(PerlFMM *self, SV *buf)
 {
     unsigned char *buffer;
     char *type;
@@ -1654,7 +1625,7 @@ FMM_bufmagic(PerlFMM *self, SV *buf)
 }
 
 SV *
-FMM_ascmagic(PerlFMM *self, char *data)
+PerlFMM_ascmagic(PerlFMM *self, char *data)
 {
     char *type;
     int rc;
@@ -1671,7 +1642,7 @@ FMM_ascmagic(PerlFMM *self, char *data)
 }
 
 SV *
-FMM_get_mime(PerlFMM *self, char *filename)
+PerlFMM_get_mime(PerlFMM *self, char *filename)
 {
     char *type;
     int rc;

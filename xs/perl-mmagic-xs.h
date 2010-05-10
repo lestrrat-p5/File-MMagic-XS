@@ -93,17 +93,17 @@ typedef struct _PerlFMM {
      newSVpv("text/plain", 10))
 
 
-SV* FMM_create(char *class);
-SV* FMM_clone(PerlFMM *self);
-void FMM_destroy(PerlFMM *state);
-SV* FMM_parse_magic_file(PerlFMM *self, char *file);
-SV* FMM_fhmagic(PerlFMM *self, SV *svio);
-SV* FMM_fsmagic(PerlFMM *self, char *filename);
-SV* FMM_bufmagic(PerlFMM *self, SV *buf);
-SV* FMM_ascmagic(PerlFMM *self, char *data);
-SV* FMM_get_mime(PerlFMM *self, char *filename);
-SV* FMM_add_magic(PerlFMM *self, char *magic);
-SV* FMM_add_file_ext(PerlFMM *self, char *ext, char *mime);
+PerlFMM* PerlFMM_create(SV *class_sv);
+PerlFMM* PerlFMM_clone(PerlFMM *self);
+void PerlFMM_destroy(PerlFMM *state);
+SV* PerlFMM_parse_magic_file(PerlFMM *self, char *file);
+SV* PerlFMM_fhmagic(PerlFMM *self, SV *svio);
+SV* PerlFMM_fsmagic(PerlFMM *self, char *filename);
+SV* PerlFMM_bufmagic(PerlFMM *self, SV *buf);
+SV* PerlFMM_ascmagic(PerlFMM *self, char *data);
+SV* PerlFMM_get_mime(PerlFMM *self, char *filename);
+SV* PerlFMM_add_magic(PerlFMM *self, char *magic);
+SV* PerlFMM_add_file_ext(PerlFMM *self, char *ext, char *mime);
 
 
 #endif
