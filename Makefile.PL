@@ -10,11 +10,6 @@ use inc::Module::Install;
 name 'File-MMagic-XS';
 all_from 'lib/File/MMagic/XS.pm';
 
-if (!cc_available()) {
-    print STDERR "Cannot continue without a compiler\n";
-    exit 0;
-}
-
 use_ppport;
 cc_warnings;
 cc_src_paths 'xs';
