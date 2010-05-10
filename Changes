@@ -3,6 +3,9 @@ Changes
 
 All changes by Daisuke Maki, unless otherwise noted.
 
+0.09004 - 11 May 2010
+   - Disable MSWin32 (patches welcome)
+
 0.09003_03 - 10 May 2010
    - Explicitly test add_file_ext
    - Add thread safety test
