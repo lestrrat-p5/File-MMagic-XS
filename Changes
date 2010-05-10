@@ -3,6 +3,10 @@ Changes
 
 All changes by Daisuke Maki, unless otherwise noted.
 
+0.09003_03 - 10 May 2010
+   - Explicitly test add_file_ext
+   - Add thread safety test
+
 0.09003_02 - 26 Apr 2010
    - Ah, typemaps! I guess I didn't know about it when I first wrote this
    - Add many tests
