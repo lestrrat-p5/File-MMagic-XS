@@ -42,7 +42,7 @@ sub new {
     my ($class, $magic_file) = @_;
     $magic_file ||= $MAGIC_FILE;
 
-    my $self = $class->create();
+    my $self = $class->_create();
     $self->parse_magic_file( $magic_file );
     return $self;
 }

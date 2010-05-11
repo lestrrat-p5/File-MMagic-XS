@@ -20,7 +20,7 @@ if ($^O eq 'MSWin32') {
 
 use_ppport;
 cc_warnings;
-cc_src_paths 'xs';
+cc_src_paths 'src';
 author_tests 'xt';
 
 auto_set_repository;
