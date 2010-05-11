@@ -1514,7 +1514,7 @@ PerlFMM_clone(PerlFMM *self)
 
     s = self->magic;
     Newxz(d, 1, fmmagic);
-    memcpy(d, s, sizeof(struct _fmmagic));
+    memcpy(d, s, sizeof(fmmagic));
     state->magic = d;
     while (s->next != NULL) {
         Newxz(d->next, 1, fmmagic);
