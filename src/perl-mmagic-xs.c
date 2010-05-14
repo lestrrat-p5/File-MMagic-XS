@@ -1625,7 +1625,7 @@ PerlFMM_bufmagic(PerlFMM *self, SV *buf)
 }
 
 SV *
-PerlFMM_ascmagic(PerlFMM *self, char *data)
+PerlFMM_ascmagic(PerlFMM *self, unsigned char *data)
 {
     char *type;
     int rc;

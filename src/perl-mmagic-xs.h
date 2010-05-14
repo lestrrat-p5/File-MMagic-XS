@@ -100,10 +100,9 @@ SV* PerlFMM_parse_magic_file(PerlFMM *self, char *file);
 SV* PerlFMM_fhmagic(PerlFMM *self, SV *svio);
 SV* PerlFMM_fsmagic(PerlFMM *self, char *filename);
 SV* PerlFMM_bufmagic(PerlFMM *self, SV *buf);
-SV* PerlFMM_ascmagic(PerlFMM *self, char *data);
+SV* PerlFMM_ascmagic(PerlFMM *self, unsigned char *data);
 SV* PerlFMM_get_mime(PerlFMM *self, char *filename);
 SV* PerlFMM_add_magic(PerlFMM *self, char *magic);
 SV* PerlFMM_add_file_ext(PerlFMM *self, char *ext, char *mime);
-
 
 #endif
