@@ -1,12 +1,6 @@
 use strict;
 use Test::More;
-use Config;
-BEGIN {
-    if (! $Config{useithreads}) {
-        plan(skip_all => "Thread support required to run this test");
-    }
-}
-use threads;
+use Test::Requires 'threads';
 use_ok "File::MMagic::XS";
 
 my $x = File::MMagic::XS->new; 
