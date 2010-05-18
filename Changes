@@ -3,6 +3,10 @@ Changes
 
 All changes by Daisuke Maki, unless otherwise noted.
 
+0.09006 - 19 May 2010
+   - Should fix errors in t/003_error.t
+     http://cpantesters.org/cpan/report/07280906-b19f-3f77-b713-d32bba55d77f
+
 0.09005 - 17 May 2010
    - Should fixe problems with t/005_clone.t
    - Minor XS tweaks
