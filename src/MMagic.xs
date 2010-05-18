@@ -89,7 +89,7 @@ PerlFMM *
 PerlFMM_clone(self)
         PerlFMM *self;
     PREINIT:
-        SV *class_sv;
+        SV *class_sv = ST(0);
 
 SV *
 PerlFMM_parse_magic_file(self, file)
