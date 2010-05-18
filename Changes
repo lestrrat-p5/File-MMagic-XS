@@ -3,6 +3,10 @@ Changes
 
 All changes by Daisuke Maki, unless otherwise noted.
 
+0.09005 - 17 May 2010
+   - Should fixe problems with t/005_clone.t
+   - Minor XS tweaks
+
 0.09004 - 11 May 2010
    - Disable MSWin32 (patches welcome)
 

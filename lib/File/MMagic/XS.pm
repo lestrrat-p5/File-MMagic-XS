@@ -8,7 +8,7 @@ our $MAGIC_FILE;
 
 BEGIN
 {
-    $VERSION = '0.09004';
+    $VERSION = '0.09005';
     XSLoader::load(__PACKAGE__, $VERSION);
 
     require File::Spec;
