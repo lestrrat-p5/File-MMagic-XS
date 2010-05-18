@@ -22,8 +22,16 @@ T_FMMXS
             HV *hv = newHV();
             const char *classname = \"File::MMagic::XS\";
             /* take (sub)class name to use from class_sv if appropriate */
-            if (class_sv && SvOK(class_sv) && sv_derived_from(class_sv, classname))
-                classname = (SvROK(class_sv)) ? HvNAME(SvSTASH(class_sv)) : SvPV_nolen(class_sv);
+            if (SvMAGICAL(class_sv))
+                mg_get(class_sv);
+
+            if (SvOK( class_sv ) && sv_derived_from(class_sv, classname ) ) {
+                if(SvROK(class_sv) && SvOBJECT(SvRV(class_sv))) {
+                    classname = sv_reftype(SvRV(class_sv), TRUE);
+                } else {
+                    classname = SvPV_nolen(class_sv);
+                }
+            }
             sv_setsv($arg, sv_2mortal(newRV_noinc((SV*)hv)));
             (void)sv_bless($arg, gv_stashpv(classname, TRUE));
 
