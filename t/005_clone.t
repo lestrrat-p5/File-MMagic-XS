@@ -35,30 +35,19 @@ my $clone = $fm->clone();
 sub runthrough {
     my $fm = shift;
 
-    while (my($file, $mime) = each %map) {
-        my $got = $fm->get_mime($file);
-        is($got, $mime, "$file: expected $mime");
+    foreach my $endl ("\n", "\0") {
+        local $/ = $endl;
+        while (my($file, $mime) = each %map) {
+            my $got = $fm->get_mime($file);
+            is($got, $mime, "$file: expected $mime");
     
-        ok(open(F, $file), "ok to open $file");
-        is($fm->fhmagic(\*F), $mime, "$file: expected $mime from fhmagic");
+            ok(open(F, $file), "ok to open $file");
+            is($fm->fhmagic(\*F), $mime, "$file: expected $mime from fhmagic");
     
-        seek(F, 0, 0);
-        my $buf = do { local $/ = undef; <F> };
-        my $ref = \$buf;
-        is($fm->bufmagic($ref), $mime, "$file: expected $mime from bufmagic");
-    }
-    
-    while (my($file, $mime) = each %map) {
-        local $/ = "\0";
-        my $got = $fm->get_mime($file);
-        is($got, $mime, "$file: expected $mime");
-    
-        ok(open(F, $file), "ok to open $file");
-        is($fm->fhmagic(\*F), $mime, "$file: expected $mime from fhmagic");
-    
-        seek(F, 0, 0);
-        my $buf = do { local $/ = undef; <F> };
-        my $ref = \$buf;
-        is($fm->bufmagic($ref), $mime, "$file: expected $mime from bufmagic");
+            seek(F, 0, 0);
+            my $buf = do { local $/ = undef; <F> };
+            my $ref = \$buf;
+            is($fm->bufmagic($ref), $mime, "$file: expected $mime from bufmagic");
+        }
     }
 }
