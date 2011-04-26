@@ -88,10 +88,7 @@ typedef struct _PerlFMM {
 #define FMM_RESULT(type, rc) \
     (rc == 0 ? \
         newSVpv(type, strlen(type)) : \
-     rc == -1 ? \
-        &PL_sv_undef : \
-     newSVpv("text/plain", 10))
-
+        &PL_sv_undef )
 
 PerlFMM* PerlFMM_create(SV *class_sv);
 PerlFMM* PerlFMM_clone(PerlFMM *self);
