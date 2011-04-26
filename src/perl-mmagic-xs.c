@@ -924,10 +924,8 @@ fmm_parse_magic_line(PerlFMM *state, char *l, int lineno)
     /* get offset, then skip over it */
     m->offset = (int) strtol(l, &t, 0);
     if (l == t) {
-        err = newSVpvf(
-            "fmm_parse_magic_line: offset %s invalid", l);
-        FMM_SET_ERROR(state, err);
-        croak(SvPV_nolen(err));
+        err = newSVpvf("Invalid offset in mime magic file, line %d: %s", lineno, l);
+        goto error;
     }
 
     l = t;
@@ -948,7 +946,9 @@ fmm_parse_magic_line(PerlFMM *state, char *l, int lineno)
                     m->in.type = BYTE;
                     break;
                 default:
-                    PerlIO_printf(PerlIO_stderr(), "fmm_parse_magic_line: indirect offset type %c invalid", *l);
+                    err = newSVpvf(
+                        "Invalid indirect offset type in mime magic file, line %d: %c", lineno, *l);
+                    goto error;
             }
             l++;
         }
@@ -965,7 +965,9 @@ fmm_parse_magic_line(PerlFMM *state, char *l, int lineno)
             t = l;
         }
         if (*t++ != ')') {
-            PerlIO_printf(PerlIO_stderr(), "fmm_parse_magic_line: missing ')' in indirect offset");
+            err = newSVpvf(
+                "Missing ')' in indirect offset in mime magic file, line %d", lineno);
+            goto error;
         }
         l = t;
     } 
@@ -1038,7 +1040,8 @@ fmm_parse_magic_line(PerlFMM *state, char *l, int lineno)
         l += NLEDATE;
     }
     else {
-        PerlIO_printf(PerlIO_stderr(), "fmm_parse_magic_line: type %s invalid", l);
+        err = newSVpvf("Invalid type in mime magic file, line %d: %s", lineno, l);
+        goto error;
     }
     /* New-style anding: "0 byte&0x80 =0x80 dynamically linked" */
     if (*l == '&') {
@@ -1102,6 +1105,10 @@ GetDesc:
     m->desc[sizeof(m->desc) - 1] = '\0';
 
     return 0;
+
+ error:
+    FMM_SET_ERROR(state, err);
+    croak(SvPV_nolen(err));
 }
 
 /* maps to mod_mime_magic::apprentice */
