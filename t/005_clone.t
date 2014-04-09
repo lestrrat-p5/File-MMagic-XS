@@ -6,9 +6,9 @@ BEGIN
 {
     my $file = __FILE__;
     %map = (
-        $file             => 'text/plain',
+        $file             => undef,
         't/data/test.xml' => 'text/xml',
-        't/data/test.rtf' => 'application/rtf'
+        't/data/test.rtf' => 'text/rtf'
     );
     plan(tests => (scalar( keys %map ) * 4) * 4 + 1);
 }

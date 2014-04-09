@@ -103,6 +103,7 @@
 #ifndef __PERL_MMAGIC_XS_C__
 #define __PERL_MMAGIC_XS_C__
 #include "perl-mmagic-xs.h"
+#define FMM_DEBUG 1
 
 /*
  * data structures for tar file recognition
@@ -357,12 +358,18 @@ fmm_append_buf(PerlFMM *state, char **dst, char *str, ...)
     va_list ap;
     char buf[MAXMIMESTRING];
     SV *err;
+    size_t len;
 
     va_start(ap, str);
     vsnprintf(buf, sizeof(buf), str, ap);
     va_end(ap);
 
-    if (strlen(buf) + 1 > MAXMIMESTRING - strlen(*dst)) {
+    len = strlen(buf);
+    if (len == 0) {
+        croak("ASSERT FAIL: detected 0 byte mime string used");
+    }
+
+    if (len + 1 > MAXMIMESTRING - strlen(*dst)) {
         err = newSVpv("detected truncation in fmm_append_buf. refusing to append", 0);
         FMM_SET_ERROR(state, err);
         return;
@@ -598,7 +605,7 @@ fmm_append_mime(PerlFMM *state, char **buf, union VALUETYPE *p, fmmagic *m)
     SV *err;
 
 #ifdef FMM_DEBUG
-    PerlIO_printf(PerlIO_stderr(), "fmm_append_mime: buf = %s\n", buf);
+    PerlIO_printf(PerlIO_stderr(), "fmm_append_mime: buf = %s\n", *buf);
 #endif 
     switch (m->type) {
         case BYTE:
@@ -610,6 +617,9 @@ fmm_append_mime(PerlFMM *state, char **buf, union VALUETYPE *p, fmmagic *m)
             v = p->h;
             break;
         case STRING:
+#ifdef FMM_DEBUG
+            PerlIO_printf(PerlIO_stderr(), "m->type is a STRING, m->desc = %s\n", m->desc);
+#endif
             if (m->reln == '=') {
                 fmm_append_buf(state, buf, m->desc, m->value.s);
             } else {
@@ -1081,8 +1091,12 @@ fmm_parse_magic_line(PerlFMM *state, char *l, int lineno)
     }
     EATAB(l);
     
-    if (fmm_getvalue(state, m, &l))
+    if (fmm_getvalue(state, m, &l)) {
+#ifdef FMM_DEBUG
+        PerlIO_printf(PerlIO_stderr(), "fmm_getvalue() returns -1\n");
+#endif
         return -1;
+    }
 
     /*
      * now get last part - the description
@@ -1106,18 +1120,18 @@ GetDesc:
 
     return 0;
 
- error:
+error:
     FMM_SET_ERROR(state, err);
-    croak(SvPV_nolen(err));
+    croak("%s", SvPV_nolen(err));
 }
 
 /* maps to mod_mime_magic::apprentice */
 static int
 fmm_parse_magic_file(PerlFMM *state, char *file)
 {
-    int   ws_offset;
-    int   lineno;
-    int   errs;
+    int   ws_offset = 0;
+    int   lineno = 0;
+    int   errs = 0;
 /*    char  line[BUFSIZ + 1];*/
     PerlIO *fhandle;
     SV *err;
@@ -1412,7 +1426,7 @@ fmm_bufmagic(PerlFMM *state, unsigned char **buffer, char **mime_type)
 
     if (fmm_ascmagic(*buffer, HOWMANY, mime_type) == 0) {
 #ifdef FMM_DEBUG
-    PerlIO_printf(PerlIO_stder(), "[fmm_bufmagic]: fmm_ascmagic returns 0\n");
+    PerlIO_printf(PerlIO_stderr(), "[fmm_bufmagic]: fmm_ascmagic returns 0\n");
 #endif
         return 0;
     }
@@ -1425,6 +1439,10 @@ fmm_fhmagic(PerlFMM *state, PerlIO *fhandle, char **mime_type)
     SV *err;
     unsigned char *data;
     int ret = -1;
+
+#ifdef FMM_DEBUG
+    PerlIO_printf(PerlIO_stderr(), "START: fmm_fhmagic\n");
+#endif
 
     Newz(1234, data, HOWMANY + 1, unsigned char);
     if (! PerlIO_read(fhandle, data, HOWMANY)) {
