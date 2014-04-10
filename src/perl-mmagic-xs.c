@@ -358,6 +358,8 @@ fmm_append_buf(PerlFMM *state, char **dst, char *str, ...)
     char buf[MAXMIMESTRING];
     SV *err;
 
+    strcpy( buf, str );
+    
     va_start(ap, str);
     vsnprintf(buf, sizeof(buf), str, ap);
     va_end(ap);
@@ -611,7 +613,7 @@ fmm_append_mime(PerlFMM *state, char **buf, union VALUETYPE *p, fmmagic *m)
             break;
         case STRING:
             if (m->reln == '=') {
-                fmm_append_buf(state, buf, m->desc, m->value.s);
+                fmm_append_buf(state, buf, m->desc, m->value.s );
             } else {
                 fmm_append_buf(state, buf, m->desc, p->s);
             }
@@ -1302,20 +1304,17 @@ fmm_ascmagic(unsigned char *buf, size_t nbytes, char **mime_type)
         }
     }
 
-    switch (is_tar(buf, nbytes)) {
-        case 1:
-            /* V7 tar archive */
-            strcpy(*mime_type, "application/x-tar");
-            return 0;
-        case 2:
-            /* POSIX tar archive */
-            strcpy(*mime_type, "application/x-tar");
-            return 0;
+    int is_tarball = is_tar(buf, nbytes);
+    if ( is_tarball == 1 || is_tarball == 2 ) {
+        /* 1: V7 tar archive */
+        /* 2: POSIX tar archive */
+        strcpy(*mime_type, "application/x-tar");
+        return 0;
     }
 
     /* all else fails, but it is ascii... */
     strcpy(*mime_type, "text/plain");
-    return 1;
+    return 0;
 }
 
 static int
@@ -1412,10 +1411,11 @@ fmm_bufmagic(PerlFMM *state, unsigned char **buffer, char **mime_type)
 
     if (fmm_ascmagic(*buffer, HOWMANY, mime_type) == 0) {
 #ifdef FMM_DEBUG
-    PerlIO_printf(PerlIO_stder(), "[fmm_bufmagic]: fmm_ascmagic returns 0\n");
+    PerlIO_printf(PerlIO_stderr(), "[fmm_bufmagic]: fmm_ascmagic returns 0\n");
 #endif
         return 0;
     }
+
     return 1;
 }
 

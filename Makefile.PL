@@ -1,3 +1,20 @@
+BEGIN {
+    if (-e ".git") {
+        my $errors = 0;
+        foreach my $module (qw(Module::Install Module::Install::AuthorTests Module::Install::Repository Module::Install::XSUtil)) {
+            eval "require $module";
+            if ($@) {
+                $errors++;
+                print $module, "\n";
+            }
+        }
+
+        if ($errors) {
+            exit 1;
+        }
+    }
+}
+
 use inc::Module::Install;
 
 # if you are getting this from git repo, you need to have

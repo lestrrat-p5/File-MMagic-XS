@@ -23,12 +23,13 @@ foreach my $eol (undef, "\0") {
     local $/ = $eol;
     my $fm = File::MMagic::XS->new;
 
-    while (my($file, $mime) = each %map) {
-        my $got = $fm->get_mime($file);
-        is($got, $mime, "$file: expected $mime");
+    foreach my $file (keys %map) {
+        my $mime = $map{$file};
 
+        my $got = $fm->get_mime($file);
+        is($got, $mime, "$file: expected $mime") or die;
         ok(open(F, $file), "ok to open $file");
-        is($fm->fhmagic(\*F), $mime, "$file: expected $mime from fhmagic");
+        is($fm->fhmagic(\*F), $mime, "$file: expected $mime from fhmagic") or die;
 
         seek(F, 0, 0);
         my $buf = do { local $/ = undef; <F> };
