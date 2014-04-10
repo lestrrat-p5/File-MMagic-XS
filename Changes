@@ -3,6 +3,11 @@ Changes
 
 All changes by Daisuke Maki, unless otherwise noted.
 
+0.09008 - 10 Apr 2014
+    - This is a "I'm a douche for not properly testing code before merging"
+      https://rt.cpan.org/Ticket/Display.html?id=94570
+      Patch from the above RT was applied
+
 0.09007 - 09 Dec 2013
     - Update inc/ . Fixes rt #63048
 
