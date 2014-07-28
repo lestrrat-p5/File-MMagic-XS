@@ -1449,7 +1449,7 @@ fmm_ext_magic(PerlFMM *state, char *file, char **mime_type)
     char ext[BUFSIZ];
     char *temp_mimetype;
     /* Look for the last dot */
-    char *dot = rindex(file, '.');
+    char *dot = strrchr(file, '.');
     if (dot == 0x00) {
         return 0;
     }
