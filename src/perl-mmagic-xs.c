@@ -1616,10 +1616,10 @@ PerlFMM_bufmagic(PerlFMM *self, SV *buf)
 
     /* rt #28040, allow RV to SVs to be passed here */
     if (SvROK(buf) && SvTYPE(SvRV(buf)) == SVt_PV) {
-        buffer = (unsigned char *) SvPV_nolen( SvRV( buf ) );
-    } else {
-        buffer = (unsigned char *) SvPV_nolen(buf);
+        buf = SvRV(buf);
     }
+    SvGROW(buf, HOWMANY + 1);
+    buffer = (unsigned char *) SvPV_nolen(buf);
 
     FMM_SET_ERROR(self, NULL);
 
