@@ -1110,7 +1110,7 @@ GetDesc:
 
  error:
     FMM_SET_ERROR(state, err);
-    croak(SvPV_nolen(err));
+    croak("%s", SvPV_nolen(err));
 }
 
 /* maps to mod_mime_magic::apprentice */
